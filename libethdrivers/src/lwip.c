@@ -8,6 +8,8 @@
  * @TAG(NICTA_GPL)
  */
 
+#include <ethdrivers/helpers.h>
+#include <camkes/dma.h>
 #include <autoconf.h>
 
 #ifdef CONFIG_LIB_LWIP
@@ -20,14 +22,18 @@
 #include <lwip/stats.h>
 #include "debug.h"
 
+void* camkes_dma_malloc(size_t size) {
+    return camkes_dma_alloc(size, 4096);
+}
+
 static void initialize_free_bufs(lwip_iface_t *iface) {
     dma_addr_t *dma_bufs = NULL;
-    dma_bufs = malloc(sizeof(dma_addr_t) * CONFIG_LIB_ETHDRIVER_NUM_PREALLOCATED_BUFFERS);
+    dma_bufs = camkes_dma_malloc(sizeof(dma_addr_t) * CONFIG_LIB_ETHDRIVER_NUM_PREALLOCATED_BUFFERS);
     if (!dma_bufs) {
         goto error;
     }
     memset(dma_bufs, 0, sizeof(dma_addr_t) * CONFIG_LIB_ETHDRIVER_NUM_PREALLOCATED_BUFFERS);
-    iface->bufs = malloc(sizeof(dma_addr_t*) * CONFIG_LIB_ETHDRIVER_NUM_PREALLOCATED_BUFFERS);
+    iface->bufs = camkes_dma_malloc(sizeof(dma_addr_t*) * CONFIG_LIB_ETHDRIVER_NUM_PREALLOCATED_BUFFERS);
     if (!iface->bufs) {
         goto error;
     }
@@ -455,9 +461,9 @@ error:
 
 lwip_iface_t *ethif_new_lwip_driver(ps_io_ops_t io_ops, ps_dma_man_t *pbuf_dma, ethif_driver_init driver, void *driver_config) {
     lwip_iface_t *ret;
-    lwip_iface_t *iface = malloc(sizeof(*iface));
+    lwip_iface_t *iface = camkes_dma_malloc(sizeof(*iface));
     if (!iface) {
-        LOG_ERROR("Failed to malloc");
+        LOG_ERROR("Failed to camkes_dma_malloc");
         return NULL;
     }
     ret = ethif_new_lwip_driver_no_malloc(io_ops, pbuf_dma, driver, driver_config, iface);

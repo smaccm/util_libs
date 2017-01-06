@@ -8,9 +8,14 @@
  * @TAG(NICTA_GPL)
  */
 
+#include <camkes/dma.h>
 #include <ethdrivers/intel.h>
 #include <assert.h>
 #include <ethdrivers/helpers.h>
+
+void* camkes_dma_malloc(size_t size) {
+    return camkes_dma_alloc(size, 4096);
+}
 
 typedef enum e1000_family {
     e1000_82580 = 1,
@@ -700,9 +705,9 @@ static int initialize_desc_ring(e1000_dev_t *dev, ps_dma_man_t *dma_man) {
         free_desc_ring(dev, dma_man);
         return -1;
     }
-    dev->rx_cookies = malloc(sizeof(void*) * dev->rx_size);
-    dev->tx_cookies = malloc(sizeof(void*) * dev->tx_size);
-    dev->tx_lengths = malloc(sizeof(unsigned int) * dev->tx_size);
+    dev->rx_cookies = camkes_dma_malloc(sizeof(void*) * dev->rx_size);
+    dev->tx_cookies = camkes_dma_malloc(sizeof(void*) * dev->tx_size);
+    dev->tx_lengths = camkes_dma_malloc(sizeof(unsigned int) * dev->tx_size);
     if (!dev->rx_cookies || !dev->tx_cookies || !dev->tx_lengths) {
         if (dev->rx_cookies) {
             free(dev->rx_cookies);
@@ -713,7 +718,7 @@ static int initialize_desc_ring(e1000_dev_t *dev, ps_dma_man_t *dma_man) {
         if (dev->tx_lengths) {
             free(dev->tx_lengths);
         }
-        LOG_ERROR("Failed to malloc");
+        LOG_ERROR("Failed to camkes_dma_malloc");
         free_desc_ring(dev, dma_man);
         return -1;
     }
@@ -964,9 +969,9 @@ common_init(struct eth_driver *driver, ps_io_ops_t io_ops, void *config, e1000_d
 
 int
 ethif_e82580_init(struct eth_driver *driver, ps_io_ops_t io_ops, void *config) {
-    e1000_dev_t *dev = malloc(sizeof(*dev));
+    e1000_dev_t *dev = camkes_dma_malloc(sizeof(*dev));
     if (!dev) {
-        LOG_ERROR("Failed to malloc");
+        LOG_ERROR("Failed to camkes_dma_malloc");
         return -1;
     }
     dev->family = e1000_82580;
@@ -976,9 +981,9 @@ ethif_e82580_init(struct eth_driver *driver, ps_io_ops_t io_ops, void *config) {
 
 int
 ethif_e82574_init(struct eth_driver *driver, ps_io_ops_t io_ops, void *config) {
-    e1000_dev_t *dev = malloc(sizeof(*dev));
+    e1000_dev_t *dev = camkes_dma_malloc(sizeof(*dev));
     if (!dev) {
-        LOG_ERROR("Failed to malloc");
+        LOG_ERROR("Failed to camkes_dma_malloc");
         return -1;
     }
     dev->family = e1000_82574;

@@ -8,6 +8,7 @@
  * @TAG(NICTA_GPL)
  */
 
+#include <camkes/dma.h>
 #include <ethdrivers/virtio_pci.h>
 #include <assert.h>
 #include <ethdrivers/helpers.h>
@@ -25,6 +26,10 @@
 
 #define RX_QUEUE 0
 #define TX_QUEUE 1
+
+void* camkes_dma_malloc(size_t size) {
+    return camkes_dma_alloc(size, 4096);
+}
 
 typedef struct virtio_dev {
     void *mmio_base;
@@ -150,11 +155,11 @@ static int initialize_desc_ring(virtio_dev_t *dev, ps_dma_man_t *dma_man) {
     memset(tx_ring.virt, 0, vring_size(dev->tx_size, VIRTIO_PCI_VRING_ALIGN));
     vring_init(&dev->tx_ring, dev->tx_size, tx_ring.virt, VIRTIO_PCI_VRING_ALIGN);
     dev->tx_ring_phys = tx_ring.phys;
-    dev->rx_cookies = malloc(sizeof(void*) * dev->rx_size);
-    dev->tx_cookies = malloc(sizeof(void*) * dev->tx_size);
-    dev->tx_lengths = malloc(sizeof(unsigned int) * dev->tx_size);
+    dev->rx_cookies = camkes_dma_malloc(sizeof(void*) * dev->rx_size);
+    dev->tx_cookies = camkes_dma_malloc(sizeof(void*) * dev->tx_size);
+    dev->tx_lengths = camkes_dma_malloc(sizeof(unsigned int) * dev->tx_size);
     if (!dev->rx_cookies || !dev->tx_cookies || !dev->tx_lengths) {
-        LOG_ERROR("Failed to malloc");
+        LOG_ERROR("Failed to camkes_dma_malloc");
         free_desc_ring(dev, dma_man);
         return -1;
     }
@@ -360,7 +365,7 @@ static struct raw_iface_funcs iface_fns = {
 int ethif_virtio_pci_init(struct eth_driver *eth_driver, ps_io_ops_t io_ops, void *config) {
     int err;
     ethif_virtio_pci_config_t *virtio_config = (ethif_virtio_pci_config_t*)config;
-    virtio_dev_t *dev = (virtio_dev_t*)malloc(sizeof(*dev));
+    virtio_dev_t *dev = (virtio_dev_t*)camkes_dma_malloc(sizeof(*dev));
     if (!dev) {
         return -1;
     }
